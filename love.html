@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>给陈多多公主的小宇宙</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      /* 柔和、干净的背景 */
+      background: radial-gradient(circle at top, #ffe6f2 0, #f9f0ff 35%, #f3f5ff 70%, #edf1ff 100%);
+      color: #333;
+      overflow: hidden;
+    }
+
+    .page {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 16px;
+    }
+
+    /* 初始按钮 */
+    #mainButton {
+      padding: 14px 28px;
+      font-size: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 166, 201, 0.9);
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.9);
+      color: #c2577d;
+      box-shadow: 0 10px 30px rgba(204, 145, 181, 0.25);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.35s ease;
+      font-weight: 600;
+      white-space: nowrap;
+      backdrop-filter: blur(8px);
+      position: relative;
+      z-index: 5;
+    }
+
+    #mainButton:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 14px 38px rgba(204, 145, 181, 0.3);
+    }
+
+    #mainButton:active {
+      transform: translateY(1px) scale(0.97);
+      box-shadow: 0 6px 20px rgba(204, 145, 181, 0.3);
+    }
+
+    .fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 再来一次按钮 */
+    #replayButton {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.9);
+      color: #c2577d;
+      box-shadow: 0 8px 24px rgba(204, 145, 181, 0.28);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      z-index: 20;
+      backdrop-filter: blur(8px);
+    }
+
+    #replayButton.hidden {
+      display: none;
+    }
+
+    #replayButton:hover {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 10px 30px rgba(204, 145, 181, 0.32);
+    }
+
+    #replayButton:active {
+      transform: translateY(1px) scale(0.97);
+    }
+
+    /* 心形容器 */
+    #heartContainer {
+      position: relative;
+      width: min(520px, 90vw);
+      height: min(520px, 90vw);
+      max-height: 90vh;
+      display: none; /* 初始隐藏 */
+    }
+
+    #heartContainer.show {
+      display: block;
+    }
+
+    /* 每一个词条气泡 */
+    .phrase-bubble {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) scale(0.3);
+      opacity: 0;
+      min-width: 110px;
+      max-width: 210px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 10px 28px rgba(204, 145, 181, 0.32);
+      color: #b33c6a;
+      font-size: 14px;
+      line-height: 1.4;
+      text-align: center;
+      white-space: normal;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      backdrop-filter: blur(10px);
+      cursor: grab;
+      transition:
+        transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1.05),
+        opacity 0.8s ease-out,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+      user-select: none;
+      touch-action: none; /* 方便拖动 */
+    }
+
+    .phrase-bubble:active {
+      cursor: grabbing;
+    }
+
+    .phrase-bubble:hover {
+      box-shadow: 0 12px 32px rgba(204, 145, 181, 0.38);
+      background: rgba(255, 255, 255, 0.98);
+    }
+
+    /* 放到心形上的目标状态 */
+    .phrase-bubble.ready {
+      opacity: 1;
+      transform: translate(
+          calc(-50% + var(--tx, 0px)),
+          calc(-50% + var(--ty, 0px))
+        ) scale(1);
+      animation: gentleFloat 5.8s ease-in-out infinite alternate;
+    }
+
+    .phrase-bubble .heart {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .phrase-bubble .real-text {
+      /* 文本一直可见，不做模糊处理 */
+    }
+
+    @keyframes gentleFloat {
+      0% {
+        transform: translate(
+            calc(-50% + var(--tx, 0px)),
+            calc(-50% + var(--ty, 0px))
+          ) scale(1);
+      }
+      100% {
+        transform: translate(
+            calc(-50% + var(--tx, 0px)),
+            calc(-50% + var(--ty, 0px) - 8px)
+          ) scale(1.02);
+      }
+    }
+
+    @media (max-width: 480px) {
+      #mainButton {
+        font-size: 16px;
+        padding: 12px 20px;
+      }
+
+      #heartContainer {
+        width: min(420px, 92vw);
+        height: min(420px, 92vw);
+      }
+
+      .phrase-bubble {
+        font-size: 13px;
+        min-width: 96px;
+        max-width: 180px;
+        padding: 6px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- 初始按钮 -->
+    <button id="mainButton">陈多多公主请亲自点击</button>
+
+    <!-- 心形词条容器 -->
+    <div id="heartContainer"></div>
+
+    <!-- 再来一次 -->
+    <button id="replayButton" class="hidden">多多公主再看一眼 ✨</button>
+  </div>
+
+  <!-- 背景音乐：记得把 warm-001.mp3 放在同目录 -->
+  <audio id="bgm" src="warm-001.mp3" loop preload="auto"></audio>
+
+  <script>
+    const mainButton = document.getElementById("mainButton");
+    const heartContainer = document.getElementById("heartContainer");
+    const replayButton = document.getElementById("replayButton");
+    const bgm = document.getElementById("bgm");
+
+    bgm.volume = 0.35; // 音量可调
+
+    // 文案池（加长版）
+    const phrases = [
+  "陈宝宝是最可爱的",
+  "陈宝宝真的很棒",
+  "陈宝宝是最厉害的媳妇儿",
+  "陈宝宝是超级牛逼的媳妇儿",
+  "陈宝宝不要叹气，好运都在路上等你",
+  "陈宝宝，奥利给！继续向前冲",
+  "今天也是陈宝宝元气满满的一天",
+  "所有好运都会主动找到陈多多公主陈宝宝",
+  "陈宝宝累了就先休息一会儿，我永远在你这边",
+  "陈宝宝已经做得很好啦",
+  "今天也是要好好温柔对待陈多多公主陈宝宝的一天",
+  "世界会偷偷偏爱这么努力的陈宝宝",
+  "陈宝宝先好好开心，其他的我们慢慢来就好",
+  "陈宝宝不需要谁来定义，你本来就很优秀",
+  "陈宝宝放心飞，我一直在你身后",
+  "和陈宝宝在一起，平凡的日子都会发光",
+  "陈宝宝闪闪发光的样子，我都记得",
+  "情绪可以慢慢平复，但陈宝宝要一直被好好爱着",
+  "生活有点难，但陈宝宝一点也不差",
+  "陈宝宝每一次认真努力，都值得被肯定",
+  "如果陈宝宝会累，那就先抱抱你",
+  "陈宝宝是我心里最柔软、也最坚强的那部分",
+  "陈宝宝偶尔难过没关系，你依然很了不起",
+  "陈宝宝走的每一步，我都在偷偷为你鼓掌",
+  "请陈多多公主陈宝宝继续发光，我负责在旁边陪你看",
+  "陈宝宝别怕慢，只要一直在向前",
+  "今天也请陈宝宝温柔对待自己一点",
+  "陈宝宝值得世间所有温柔",
+  "陈宝宝的笑，是我最喜欢的烟花",
+  "未来的每一寸光景，我都想和陈宝宝一起看",
+  "陈宝宝的存在本身，就是最好的礼物",
+  "陈宝宝不必把自己逼成钢铁人，你可以软一点，我来多扛一点",
+  "糟糕的情绪会过去，但陈宝宝被爱的事实不会变",
+  "陈宝宝不是在乱闯，你是在认真生活",
+  "全世界都可以不懂你，但我懂陈宝宝",
+  "起风的时候，陈宝宝记得加衣服，也记得我在惦记你",
+  "陈宝宝没有变差，你只是有点累了",
+  "遇见陈宝宝，是一切美好故事的开头",
+  "陈宝宝值得被认真对待，而不是被敷衍",
+  "就算全世界都吵吵闹闹，陈宝宝依然可以慢慢来"
+];
+
+    let hasStarted = false;
+    let zIndexCounter = 1;
+
+    mainButton.addEventListener("click", () => {
+      if (!hasStarted) {
+        hasStarted = true;
+
+        // 按钮淡出并隐藏
+        mainButton.classList.add("fade-out");
+        setTimeout(() => {
+          mainButton.style.display = "none";
+        }, 400);
+
+        // 显示心形容器
+        heartContainer.classList.add("show");
+
+        // 播放背景音乐（需要用户交互后才能成功）
+        bgm.play().catch(err => {
+          console.log("音乐播放被浏览器限制：", err);
+        });
+
+        // 首次创建爱心
+        buildHeart();
+        replayButton.classList.remove("hidden");
+      } else {
+        buildHeart();
+      }
+    });
+
+    replayButton.addEventListener("click", () => {
+      buildHeart();
+    });
+
+    /**
+     * 构建由词条组成的爱心
+     */
+    function buildHeart() {
+      heartContainer.innerHTML = "";
+
+      const w = heartContainer.clientWidth;
+      const h = heartContainer.clientHeight;
+      const minSize = Math.min(w, h);
+      const scale = minSize / 34; // 放大比例
+
+      const total = phrases.length;
+
+      for (let i = 0; i < total; i++) {
+        const tBase = (2 * Math.PI * i) / total;
+        const jitter = (Math.random() - 0.5) * (Math.PI / 8);
+        const t = tBase + jitter;
+
+        // 心形曲线
+        const x0 = 16 * Math.pow(Math.sin(t), 3);
+        const y0 =
+          13 * Math.cos(t) -
+          5 * Math.cos(2 * t) -
+          2 * Math.cos(3 * t) -
+          Math.cos(4 * t);
+
+        const innerFactor = 0.55 + Math.random() * 0.4;
+        const x = x0 * innerFactor;
+        const y = y0 * innerFactor;
+
+        const offsetX = x * scale;
+        const offsetY = -y * scale;
+
+        const bubble = document.createElement("div");
+        bubble.className = "phrase-bubble";
+
+        bubble.style.setProperty("--tx", offsetX + "px");
+        bubble.style.setProperty("--ty", offsetY + "px");
+
+        // 记录“家”的位置，用于拖完弹回
+        bubble.dataset.homeTx = offsetX;
+        bubble.dataset.homeTy = offsetY;
+
+        const heartSpan = document.createElement("span");
+        heartSpan.className = "heart";
+        heartSpan.textContent = "❤";
+
+        const textSpan = document.createElement("span");
+        textSpan.className = "real-text";
+        textSpan.textContent = phrases[i];
+
+        bubble.appendChild(heartSpan);
+        bubble.appendChild(textSpan);
+
+        // 点击时置顶
+        bubble.addEventListener("click", () => {
+          bubble.style.zIndex = ++zIndexCounter;
+        });
+
+        // 拖拽逻辑
+        attachDrag(bubble);
+
+        heartContainer.appendChild(bubble);
+
+        // 错峰，让爱心有“绽放”的感觉
+        const delay = 60 * i + Math.random() * 120;
+        setTimeout(() => {
+          bubble.classList.add("ready");
+        }, 40 + delay);
+      }
+    }
+
+    /**
+     * 给气泡加上可拖拽能力：
+     * 按下 -> 跟着手指/鼠标移动
+     * 松开 -> 弹回原本的爱心位置
+     */
+    function attachDrag(bubble) {
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let homeTx = 0;
+      let homeTy = 0;
+      let pointerId = null;
+
+      const onPointerDown = (e) => {
+        e.preventDefault();
+        bubble.style.zIndex = ++zIndexCounter;
+
+        dragging = true;
+        pointerId = e.pointerId;
+        bubble.setPointerCapture(pointerId);
+
+        // 暂停呼吸动画
+        bubble.style.animation = "none";
+
+        startX = e.clientX;
+        startY = e.clientY;
+        homeTx = parseFloat(bubble.dataset.homeTx || "0");
+        homeTy = parseFloat(bubble.dataset.homeTy || "0");
+
+        // 临时去掉过渡，拖动时不需要动画
+        bubble.style.transition = "none";
+      };
+
+      const onPointerMove = (e) => {
+        if (!dragging || e.pointerId !== pointerId) return;
+
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        const newTx = homeTx + dx;
+        const newTy = homeTy + dy;
+
+        bubble.style.setProperty("--tx", newTx + "px");
+        bubble.style.setProperty("--ty", newTy + "px");
+      };
+
+      const onPointerUp = (e) => {
+        if (!dragging || e.pointerId !== pointerId) return;
+
+        dragging = false;
+        bubble.releasePointerCapture(pointerId);
+        pointerId = null;
+
+        // 恢复过渡，让它“弹回去”
+        bubble.style.transition =
+          "transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1.05), opacity 0.5s ease-out, box-shadow 0.2s ease, background 0.2s ease";
+
+        // 把位置恢复到“家”的坐标
+        bubble.style.setProperty("--tx", homeTx + "px");
+        bubble.style.setProperty("--ty", homeTy + "px");
+
+        // 稍后恢复呼吸动画
+        setTimeout(() => {
+          bubble.style.animation = "";
+        }, 200);
+      };
+
+      bubble.addEventListener("pointerdown", onPointerDown);
+      bubble.addEventListener("pointermove", onPointerMove);
+      bubble.addEventListener("pointerup", onPointerUp);
+      bubble.addEventListener("pointercancel", onPointerUp);
+    }
+  </script>
+</body>
+</html>
