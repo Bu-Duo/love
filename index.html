@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>给陈多多公主的小宇宙</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <style>
     * {
       box-sizing: border-box;
@@ -22,6 +24,7 @@
       background: radial-gradient(circle at top, #ffe6f2 0, #f9f0ff 35%, #f3f5ff 70%, #edf1ff 100%);
       color: #333;
       overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .page {
@@ -49,6 +52,7 @@
       backdrop-filter: blur(8px);
       position: relative;
       z-index: 5;
+      -webkit-tap-highlight-color: transparent;
     }
 
     #mainButton:hover {
@@ -82,6 +86,7 @@
       transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
       z-index: 20;
       backdrop-filter: blur(8px);
+      -webkit-tap-highlight-color: transparent;
     }
 
     #replayButton.hidden {
@@ -141,6 +146,7 @@
         background 0.2s ease;
       user-select: none;
       touch-action: none; /* 方便拖动 */
+      -webkit-tap-highlight-color: transparent;
     }
 
     .phrase-bubble:active {
@@ -186,6 +192,16 @@
       }
     }
 
+    /* 调整气泡出现动画时间 */
+    .phrase-bubble.ready {
+      opacity: 1;
+      transform: translate(
+          calc(-50% + var(--tx, 0px)),
+          calc(-50% + var(--ty, 0px))
+        ) scale(1);
+      animation: gentleFloat 8s ease-in-out infinite alternate;
+    }
+
     @media (max-width: 480px) {
       #mainButton {
         font-size: 16px;
@@ -202,6 +218,63 @@
         min-width: 96px;
         max-width: 180px;
         padding: 6px 10px;
+      }
+    }
+
+    /* 针对iPhone 12优化 (390px宽度) */
+    @media (max-width: 390px) {
+      body {
+        overflow: hidden;
+      }
+
+      .page {
+        padding: 20px;
+        height: 100vh;
+      }
+
+      #mainButton {
+        font-size: 15px;
+        padding: 10px 18px;
+        line-height: 1.4;
+      }
+
+      #heartContainer {
+        width: min(360px, 95vw);
+        height: min(360px, 95vw);
+      }
+
+      .phrase-bubble {
+        font-size: 11.5px;
+        min-width: 80px;
+        max-width: 150px;
+        padding: 5px 8px;
+        gap: 3px;
+      }
+
+      .phrase-bubble .heart {
+        font-size: 11.5px;
+      }
+
+      #replayButton {
+        font-size: 12px;
+        padding: 7px 12px;
+        right: 12px;
+        bottom: 12px;
+      }
+
+      @keyframes gentleFloat {
+        0% {
+          transform: translate(
+              calc(-50% + var(--tx, 0px)),
+              calc(-50% + var(--ty, 0px))
+            ) scale(1);
+        }
+        100% {
+          transform: translate(
+              calc(-50% + var(--tx, 0px)),
+              calc(-50% + var(--ty, 0px) - 6px)
+            ) scale(1.01);
+        }
       }
     }
   </style>
@@ -315,24 +388,44 @@
       const w = heartContainer.clientWidth;
       const h = heartContainer.clientHeight;
       const minSize = Math.min(w, h);
-      const scale = minSize / 34; // 放大比例
+      const scale = minSize / 28; // 增加放大比例，让心形更大
 
       const total = phrases.length;
+      // 增加更多点来填充心形，特别是边缘
+      const densityFactor = 1.5; // 密度因子
+      const pointsTotal = Math.floor(total * densityFactor);
 
       for (let i = 0; i < total; i++) {
-        const tBase = (2 * Math.PI * i) / total;
-        const jitter = (Math.random() - 0.5) * (Math.PI / 8);
-        const t = tBase + jitter;
+        // 根据索引更均匀地分布点，减少随机性
+        // 将t分布在[0, 2π]范围内，重点优化心形轮廓
+        let t;
+        if (i < total * 0.3) {
+          // 心形上半部分更密集
+          t = (2 * Math.PI * i * 1.5) / total;
+        } else if (i < total * 0.7) {
+          // 心形两侧
+          t = (2 * Math.PI * 0.45) + (2 * Math.PI * (i - total * 0.3) * 1.2) / total;
+        } else {
+          // 心形底部
+          t = (2 * Math.PI * 0.9) + (2 * Math.PI * (i - total * 0.7)) / total;
+        }
 
-        // 心形曲线
+        // 减少随机性，确保心形轮廓清晰
+        const jitter = (Math.random() - 0.5) * (Math.PI / 24);
+        t = t + jitter;
+
+        // 心形曲线 - 调整参数使心形更明显
         const x0 = 16 * Math.pow(Math.sin(t), 3);
         const y0 =
-          13 * Math.cos(t) -
-          5 * Math.cos(2 * t) -
-          2 * Math.cos(3 * t) -
+          13 * Math.cos(t) - 
+          5 * Math.cos(2 * t) - 
+          2 * Math.cos(3 * t) - 
           Math.cos(4 * t);
 
-        const innerFactor = 0.55 + Math.random() * 0.4;
+        // 减少随机性，让元素更贴近心形轮廓
+        const baseFactor = 0.65;
+        const variation = (i % 3) * 0.1; // 轻微变化创造层次感
+        const innerFactor = baseFactor + variation;
         const x = x0 * innerFactor;
         const y = y0 * innerFactor;
 
@@ -431,13 +524,18 @@
         bubble.releasePointerCapture(pointerId);
         pointerId = null;
 
-        // 恢复过渡，让它“弹回去”
+        // 恢复过渡，但不再弹回原位
         bubble.style.transition =
-          "transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1.05), opacity 0.5s ease-out, box-shadow 0.2s ease, background 0.2s ease";
+          "transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1.05), opacity 0.5s ease-out, box-shadow 0.2s ease, background 0.2s ease";
 
-        // 把位置恢复到“家”的坐标
-        bubble.style.setProperty("--tx", homeTx + "px");
-        bubble.style.setProperty("--ty", homeTy + "px");
+        // 更新"家"的位置为当前位置，这样下次拖动会以此为基准
+        // 注意：这里不再恢复位置，而是记录新位置
+        const currentTx = parseFloat(bubble.style.getPropertyValue("--tx"));
+        const currentTy = parseFloat(bubble.style.getPropertyValue("--ty"));
+        
+        // 保存新位置作为基准位置
+        bubble.dataset.homeTx = currentTx;
+        bubble.dataset.homeTy = currentTy;
 
         // 稍后恢复呼吸动画
         setTimeout(() => {
